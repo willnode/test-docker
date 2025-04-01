@@ -1,7 +1,9 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify, render_template, request
 import redis
-import requests
 import os
+import socket
+
+import requests_wrapper as requests
 
 app = Flask(__name__)
 
@@ -23,13 +25,26 @@ def health_check():
     except Exception as e:
         return jsonify({"status": "error", "redis_error": str(e)}), 500
 
-@app.route("/external", methods=["GET"])
-def fetch_external():
+@app.route("/inet", methods=["GET"])
+def fetch_inet():
     try:
-        response = requests.get("https://api.ipify.org?format=json", timeout=3)
+        response = requests.get("https://api.ipify.org:443?format=json", timeout=3, family=socket.AF_INET)
         return jsonify(response.json()), 200
     except requests.RequestException as e:
         return jsonify({"error": str(e)}), 500
+    
+
+@app.route("/inet6", methods=["GET"])
+def fetch_inet6():
+    try:
+        response = requests.get("https://api.ipify.org:443?format=json", timeout=3, family=socket.AF_INET6)
+        return jsonify(response.json()), 200
+    except requests.RequestException as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/headers", methods=["GET"])
+def fetch_headers():
+    return jsonify({k:v for k, v in request.headers.items()}), 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
